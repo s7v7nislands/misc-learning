@@ -1,0 +1,62 @@
+1. 在fastcgi中用到的一些变量时在 ngx_http_variables.c 中定义
+2. 在共享内存中用的slab来管理
+3. ngx_inherited = 1；表示socket是继承来的。但升级nginx的时候用到
+4. linux不支持SO_SNDLOWAT。
+5. 模块的初始化顺序，见objs的ngx_modules.c文件。
+6. 参数的处理。type, conf, offset, cmd_type. 有type判断要不要使用conf和offset；有cmd_type判断参数允许出现的范围
+7. http模块中的handler不过是ngx_http_core_content_phase中的handler
+8. nginx默认的编译会设置gcc的-g选项。
+
+
+
+nginx启动流程：
+1. 简单参数解析
+2. ngx_time_init 	初始化系统时间
+3. ngx_regex_init	初始化正则表达式
+4. ngx_ssl_init		初始化ssl
+5. 初始化init_cycle
+6. ngx_save_argv 		保存命令行参数和envrion变量到init_cycle
+7. ngx_process_options 	处理保存在init_cycle中的参数，主要是确定运行环境的path信息
+8. ngx_os_init			包括:	
+							1. 特定系统的初始化：uname(),取得机器的信息；初始化rtsig；初始化io读写操作
+							2. 初始化进程角色；初始化ngx_pagesize，ngx_cacheline_size，ngx_ncpu，
+							   ngx_max_sockets, ngx_inherited_nonblocking等
+							3. 
+9. ngx_crc32_table_init			初始化crc
+10.ngx_add_inherited_sockets	分2种情况：
+									1. 初次运行，忽略。	
+									2. 升级nginx，从envrion中取NGINX_VAR已经运行的进程id的socket设置，继承之。
+									   然后调用ngx_open_listening_sockets()来获取socket的选项设置。(getsockopt)
+11.遍历编译时候生成的ngx_modules，设置各个module的index和ngx_max_module(模块的总数)
+12.ngx_init_cycle		这个函数完成了启动过程的大部分：
+						1. 从原来的ngx_cycle_t中继承原有的信息，设置新的ngx_cycle_t结构
+						2. 创建所有NGX_CORE_MODULE的配置结构(create_conf)
+						3. 保存当前的环境变量到senv
+						4. 设置ngx_conf_t变量
+						5. 解析-g的参数和配置文件中的参数
+						6. 初始化所有NGX_CORE_MODULE的配置文件(init_conf)
+						7. 如果进程是以NGX_PROCESS_SIGNALLER方式运行就退出函数
+						8. 如果这次不是ngx_is_init_cycle，则重新创建pidfile
+						9. 创建相应的目录ngx_create_pathes
+						10.打开新的日志文件
+						11.打开需要用到的文件
+						12.重新初始化share memory
+						13.重新初始化socket的设置
+						14.ngx_open_listening_sockets
+						15.ngx_configure_listening_sockets
+						16.为每个模块调用init_module()
+						17.释放不在使用的share memory
+						18.关闭不再使用的socket
+						19.关闭不再使用的文件
+						29.保存旧的ngx_cycle_t到ngx_old_cycles，旧的ngx_cycle_t会被清理ngx_clean_old_cycles
+13.ngx_signal_process	如果是-s参数，则执行
+14.ngx_os_status		输出一些系统信息
+15.保存ngx_cycle		ngx_cycle保存了本次运行的所有信息
+16.ngx_process，确定进程的运行方式(NGX_PROCESS_MASTER|NGX_PROCESS_SINGLE)
+17.ngx_init_signals		初始化signal的处理函数
+18.如果不是daemon，		设置ngx_daemonized
+19.ngx_create_pidfile	创建pid文件
+20.ngx_set_stderr		把标准出错重定向到err_log
+21.ngx_master_process_cycle|ngx_single_process_cycle	根据前面确定的ngx_process，按不同的方式运行
+						下面分别简单描述2种方式的运行过程：
+						1. ngx_single_process_cycle，

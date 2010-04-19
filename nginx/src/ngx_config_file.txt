@@ -1,0 +1,157 @@
+/*
+ *        AAAA  number of agruments
+ *      FF      command flags
+ *    TT        command type, i.e. HTTP "location" or "server" command
+ */
+nginx的参数表示方式
+
+#define NGX_CONF_ARGS_NUMBER 0x000000ff
+#define NGX_CONF_BLOCK       0x00000100
+#define NGX_CONF_FLAG        0x00000200
+#define NGX_CONF_ANY         0x00000400
+#define NGX_CONF_1MORE       0x00000800
+#define NGX_CONF_2MORE       0x00001000
+#define NGX_CONF_MULTI       0x00002000
+
+#define NGX_DIRECT_CONF      0x00010000		// 直接取有module有create_conf,init_conf初始化的结构
+
+#define NGX_MAIN_CONF        0x01000000		// 可以自己创建conf结构
+#define NGX_ANY_CONF         0x0F000000
+其中几个参数
+
+nginx: type directives
+
+Each has a type of configuration directives.
+
+Type - a characteristic which the directive can be placed and how it may be arguments. 
+Here I will try to describe all possible types:
+
+NGX_ANY_CONF - This directive can use anywhere;
+NGX_CONF_1MORE - this directive has 1 or more arguments;
+NGX_CONF_2MORE - this directive has 2 or more arguments;
+NGX_CONF_BLOCK — contains within itself the other derektivy;
+NGX_CONF_FLAG - This directive can only accept one argument and its significance may be on or off;
+NGX_CONF_MULTI - This directive can be defined several times;
+NGX_CONF_NOARGS - in this derektivy can not be arguments;
+NGX_CONF_TAKE1 - This directive takes a single argument;
+NGX_CONF_TAKE12 - This directive takes only one or two arguments;
+NGX_CONF_TAKE123 - This directive accepts only one, two or three arguments;
+NGX_CONF_TAKE1234 - dekertiva it only takes one, two, three or four arguments;
+NGX_CONF_TAKE2 - This directive takes two arguments;
+NGX_CONF_TAKE23 - This directive accepts only two or three arguments;
+NGX_CONF_TAKE3 - This directive takes only three arguments;
+NGX_DIRECT_CONF - with reference to the configuration of the extra derektivy skipped Index (optimization);
+NGX_EVENT_CONF - directive can be defined in a block event
+NGX_HTTP_LIF_CONF - directive can be used if in the location
+NGX_HTTP_SIF_CONF - directive can be used if in the server
+NGX_HTTP_LMT_CONF - directive can be used if in limit_except
+NGX_HTTP_LOC_CONF - directive can be used in block location
+NGX_HTTP_MAIN_CONF - directive can be used in the unit main
+NGX_HTTP_SRV_CONF - directive can be used in cluster server
+NGX_HTTP_UPS_CONF - directive can be used to block upstream
+NGX_MAIN_CONF - directive can be used to all the other blocks. 
+	
+	
+	
+struct ngx_command_s {
+    ngx_str_t             name;		//参数的名字
+    ngx_uint_t            type;		//参数的类型，就是上面指出的常量的组合值
+    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf); 	//解析参数的构造函数，nginx的handle通常在这里设置。
+    ngx_uint_t            conf;		//参数要保存的地方。当type是NGX_DIRECT_CONF或NGX_DIRECT_CONF时，可以为0
+    ngx_uint_t            offset;	//参数要保存的地方,通常是模块的自定义数据结构中的字段偏移地址，
+    void                 *post;		//自定义的参数
+};
+
+
+struct ngx_open_file_s {
+    ngx_fd_t              fd;
+    ngx_str_t             name;
+
+    u_char               *buffer;
+    u_char               *pos;
+    u_char               *last;
+};
+
+
+
+define NGX_MODULE_V1          0, 0, 0, 0, 0, 0, 1
+#define NGX_MODULE_V1_PADDING  0, 0, 0, 0, 0, 0, 0, 0
+
+struct ngx_module_s {
+    ngx_uint_t            ctx_index; 	//在子模块列表中的index
+    ngx_uint_t            index;		//在整个模板列表中的index
+
+    ngx_uint_t            spare0;
+    ngx_uint_t            spare1;
+    ngx_uint_t            spare2;
+    ngx_uint_t            spare3;
+
+    ngx_uint_t            version;
+
+    void                 *ctx;			//模块的上下文
+    ngx_command_t        *commands;		//模块的参数相关处理
+    ngx_uint_t            type;			//模块的类型
+	//指向一些在不同运行过程中的钩子函数
+    ngx_int_t           (*init_master)(ngx_log_t *log);		 	// 未使用
+
+    ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
+
+    ngx_int_t           (*init_process)(ngx_cycle_t *cycle);
+    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle);		// 未使用
+    void                (*exit_thread)(ngx_cycle_t *cycle);		// 未使用
+    void                (*exit_process)(ngx_cycle_t *cycle);
+	void                (*exit_master)(ngx_cycle_t *cycle);
+
+    uintptr_t             spare_hook0;
+    uintptr_t             spare_hook1;
+    uintptr_t             spare_hook2;
+    uintptr_t             spare_hook3;
+    uintptr_t             spare_hook4;
+    uintptr_t             spare_hook5;
+    uintptr_t             spare_hook6;
+    uintptr_t             spare_hook7;
+};
+
+typedef struct {
+    ngx_str_t             name;			//模块的名字
+    void               *(*create_conf)(ngx_cycle_t *cycle);				//申请模块在运行时的数据结构内存空间
+    char               *(*init_conf)(ngx_cycle_t *cycle, void *conf);	//初始化模块在运行时的数据结构
+} ngx_core_module_t;
+
+
+typedef struct {
+    ngx_file_t            file;
+    ngx_buf_t            *buffer;
+    ngx_uint_t            line;
+} ngx_conf_file_t;
+
+
+typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
+    ngx_command_t *dummy, void *conf);
+
+// 表示当前的配置命令及解析的过程	
+struct ngx_conf_s {
+    char                 *name;		// 当前处理的配置指令
+    ngx_array_t          *args;		// 当前处理的配置指令的参数
+
+    ngx_cycle_t          *cycle;
+    ngx_pool_t           *pool;
+    ngx_pool_t           *temp_pool;
+    ngx_conf_file_t      *conf_file;
+    ngx_log_t            *log;
+
+    void                 *ctx;
+    ngx_uint_t            module_type;	// 限制配置命令在各个模块的查找handler
+    ngx_uint_t            cmd_type;		// 用于判断配置命令位置
+
+    ngx_conf_handler_pt   handler;		// 下面很少用到：http types {}. 表示要对配置先做一步处理
+    char                 *handler_conf;
+};
+
+note：
+1. 有2种不同的方式来初始化module自己的配置数据结构：
+	1. 可以在module初始化的时候(create_conf，其中init_conf在对读取了配置文件后调用)(core模块必须初始化的)
+	2. 在匹配的module的指令的时候(比如在匹配到http，mail指令)
+	这2种的区别主要在于：后面的这种可以编译了模块而不使用它们。
+
+2. 找到第一条匹配的命令就结束，NGX_CONF_MULTI除外

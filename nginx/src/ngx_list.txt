@@ -1,0 +1,31 @@
+typedef struct ngx_list_part_s  ngx_list_part_t;
+
+struct ngx_list_part_s {
+    void             *elts;		//指向桶中元素的首地址
+    ngx_uint_t        nelts;	//已经使用的元素个数，总个数在ngx_list_t中的nalloc表示
+    ngx_list_part_t  *next;		//指向下一个桶
+};
+
+
+typedef struct {
+    ngx_list_part_t  *last;		//指向最后一个list桶
+    ngx_list_part_t   part;		//第一个桶
+    size_t            size;		//一个元素占用的内存大小
+    ngx_uint_t        nalloc;	//桶的大小
+    ngx_pool_t       *pool;		//指向list桶的内存分配的pool.(本身结构可能不在这个pool中)
+} ngx_list_t;
+
+
+gx_list_t *ngx_list_create(ngx_pool_t *pool, ngx_uint_t n, size_t size);
+在pool中分配gx_list_t，并初始化第一个桶。
+
+static ngx_inline ngx_int_t
+ngx_list_init(ngx_list_t *list, ngx_pool_t *pool, ngx_uint_t n, size_t size);
+在pool中初始化第一个桶中的元素存放的内存。
+
+void *ngx_list_push(ngx_list_t *list);
+返回指向新分配元素的内存。
+当list的最后一个桶未满时：
+	1.直接返回桶中未使用的元素的地址
+当list的最后一个桶满时：
+	1.新建一个桶添加到list到桶列表的末尾；并返回桶中第一个元素的地址。

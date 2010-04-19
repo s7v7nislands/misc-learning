@@ -1,0 +1,19 @@
+#define NGX_TIMER_INFINITE  (ngx_msec_t) -1
+
+#define NGX_TIMER_LAZY_DELAY  300
+
+
+ngx_int_t ngx_event_timer_init(ngx_log_t *log);		// 初始化timer，用rbtree来实现从小到大的排序
+ngx_msec_t ngx_event_find_timer(void);				// 找到最小的timer，如果没有timer，则返回NGX_TIMER_INFINITE；否则最小的已经过期返回0，否则返回到期的时间间隔
+void ngx_event_expire_timers(void);					// 处理所有已经过期的timer的event
+
+extern ngx_thread_volatile ngx_rbtree_t  ngx_event_timer_rbtree;
+
+static ngx_inline void
+ngx_event_del_timer(ngx_event_t *ev)
+// 从ngx_event_timer_rbtree中删去ev的timer
+
+static ngx_inline void
+ngx_event_add_timer(ngx_event_t *ev, ngx_msec_t timer)
+// 把ev的时间修改为当前时间和timer的计算值，同时如果不在ngx_event_timer_rbtree中就加入，否则就调整ngx_event_timer_rbtree的排序
+// 当调整后的值与原来的值小于NGX_TIMER_LAZY_DELAY时，不用调整

@@ -1,0 +1,20 @@
+#define nginx_version         8021
+#define NGINX_VERSION      "0.8.21"
+#define NGINX_VER          "nginx/" NGINX_VERSION
+
+#define NGINX_VAR          "NGINX"
+#define NGX_OLDPID_EXT     ".oldbin"
+
+
+ngx_uint_t       	ngx_max_module;//模块的总数                                                                               
+
+static ngx_uint_t   ngx_show_help;			
+static ngx_uint_t   ngx_show_version; 
+static ngx_uint_t   ngx_show_configure;
+static u_char      *ngx_prefix;				
+static u_char      *ngx_conf_file;
+static u_char      *ngx_conf_params;		// 对应-g选项的参数
+static char        *ngx_signal;                                                                                   
+
+
+static char **ngx_os_environ;

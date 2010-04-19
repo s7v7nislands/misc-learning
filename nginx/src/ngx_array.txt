@@ -1,0 +1,28 @@
+struct ngx_array_s {
+    void        *elts;		//指向pool中分配的内存首地址。
+    ngx_uint_t   nelts; 	//以使用的元素个数
+    size_t       size;		//一个元素占用的内存大小
+    ngx_uint_t   nalloc;	//预先分配的元素个数
+    ngx_pool_t  *pool;		//指向内存池（本身结构可能不在这个pool中）
+};
+
+static ngx_inline ngx_int_t
+ngx_array_init(ngx_array_t *array, ngx_pool_t *pool, ngx_uint_t n, size_t size);
+在pool中分配内存来初始化ngx_array_t中的elts。
+
+ngx_array_t *ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size);
+在pool中分配ngx_array_t，并初始化elts。
+
+void ngx_array_destroy(ngx_array_t *a);
+撤销ngx_array_t的内存使用。只有当elts或ngx_array_t是在pool的最后的时候才回收内存。（可能不在这个pool最后）
+在代码中没有使用，因为用pool来管理内存，减少内存分配和回收的次数。
+
+
+void *ngx_array_push(ngx_array_t *a);
+void *ngx_array_push_n(ngx_array_t *a, ngx_uint_t n);
+返回指向新分配元素的内存。
+当队列未满的时候：
+	1.直接从队列中取出未使用的元素。
+当队列已满的时候：
+	1.如果可以直接扩展内存（pool中最后一个分配的时候），直接扩展一个元素
+	2.否则会重新创建时原来2倍大小的队列（会移动元素，所以指向原来元素的指针会无效）。

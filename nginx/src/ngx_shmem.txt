@@ -1,0 +1,11 @@
+typedef struct {
+    u_char      *addr;		// 映射共享内存的起始地址
+    size_t       size;		// 映射共享内存的大小
+    ngx_str_t    name;		// 共享内存的名字
+    ngx_log_t   *log;		// 日志相关
+    ngx_uint_t   exists;   /* unsigned  exists:1;  */  	//表示在addr中已经初始化了slab pool
+} ngx_shm_t;
+
+// 申请共享内存。有3种方式：1.MAP_ANON(mmap/munmap) 2. MAP_DEVZERO(/dev/zero) 3. SYSVSHM(shmget/shmdt)
+ngx_int_t ngx_shm_alloc(ngx_shm_t *shm);
+void ngx_shm_free(ngx_shm_t *shm);

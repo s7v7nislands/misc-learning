@@ -1,0 +1,12 @@
+ngx_locked_post_event(ev, queue)
+ngx_post_event(ev, queue)			都是表示把event加到queue头部。第2种在多线程下使用
+									注意：表示ev中的prev表示ev是否已在queue中
+
+ngx_delete_posted_event(ev)			从事件队列中删除ev
+
+void ngx_event_process_posted(ngx_cycle_t *cycle,	// 循环处理posted中的每个event，先从posted中删去，然后调用event的handler处理
+    ngx_thread_volatile ngx_event_t **posted);
+void ngx_wakeup_worker_thread(ngx_cycle_t *cycle);	// 空函数，在没有启用多线程的情况下
+
+extern ngx_thread_volatile ngx_event_t  *ngx_posted_accept_events;
+extern ngx_thread_volatile ngx_event_t  *ngx_posted_events;

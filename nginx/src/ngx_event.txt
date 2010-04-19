@@ -1,0 +1,137 @@
+#define NGX_INVALID_INDEX  0xd0d0d0d0
+
+typedef struct {
+    ngx_uint_t       lock;
+
+    ngx_event_t     *events;
+    ngx_event_t     *last;
+} ngx_event_mutex_t;
+
+struct ngx_event_s {
+    void            *data;		// connection
+
+    unsigned         write:1;
+
+    unsigned         accept:1;
+
+    /* used to detect the stale events in kqueue, rtsig, and epoll */
+    unsigned         instance:1;
+
+    /*
+     * the event was passed or would be passed to a kernel;
+     * in aio mode - operation was posted.
+     */
+    unsigned         active:1;		// 表示已经加入到epoll fd中
+
+    unsigned         disabled:1;
+
+    /* the ready event; in aio mode 0 means that no operation can be posted */
+    unsigned         ready:1;
+
+    unsigned         oneshot:1;
+
+    /* aio operation is complete */
+    unsigned         complete:1;
+
+	unsigned         eof:1;
+    unsigned         error:1;
+
+    unsigned         timedout:1;		// 表示已经超时，已经做出处理
+    unsigned         timer_set:1;		// 表示已经添加到时间处理队列。
+
+    unsigned         delayed:1;
+
+    unsigned         read_discarded:1;
+
+    unsigned         unexpected_eof:1;
+
+    unsigned         deferred_accept:1;
+
+    /* the pending eof reported by kqueue or in aio chain operation */
+    unsigned         pending_eof:1;
+
+#if !(NGX_THREADS)
+    unsigned         posted_ready:1;
+#endif
+
+
+    unsigned         available:1;
+
+    ngx_event_handler_pt  handler;
+
+
+#if (NGX_HAVE_AIO)
+    struct aiocb     aiocb;
+#endif
+
+    ngx_uint_t       index;
+
+    ngx_log_t       *log;
+
+    ngx_rbtree_node_t   timer;
+
+    unsigned         closed:1;		// 表示event还没发生
+
+    /* to test on worker exit */
+    unsigned         channel:1;
+    unsigned         resolver:1;
+
+    /* the links of the posted queue */
+    ngx_event_t     *next;		// 指向下一个ngx_event_t结构
+    ngx_event_t    **prev;		// 指向前一个ngx_event_t结构中的next字段
+
+};
+
+typedef struct {
+    in_addr_t  mask;
+    in_addr_t  addr;
+} ngx_event_debug_t;
+
+
+typedef struct {
+    ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+    ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+
+    ngx_int_t  (*enable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+    ngx_int_t  (*disable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+
+    ngx_int_t  (*add_conn)(ngx_connection_t *c);
+    ngx_int_t  (*del_conn)(ngx_connection_t *c, ngx_uint_t flags);
+
+    ngx_int_t  (*process_changes)(ngx_cycle_t *cycle, ngx_uint_t nowait);
+    ngx_int_t  (*process_events)(ngx_cycle_t *cycle, ngx_msec_t timer,
+                   ngx_uint_t flags);
+
+    ngx_int_t  (*init)(ngx_cycle_t *cycle, ngx_msec_t timer);
+    void       (*done)(ngx_cycle_t *cycle);
+} ngx_event_actions_t;
+
+extern ngx_event_actions_t   ngx_event_actions;
+
+typedef struct {
+    ngx_uint_t    connections;
+    ngx_uint_t    use;
+
+    ngx_flag_t    multi_accept;
+    ngx_flag_t    accept_mutex;
+
+    ngx_msec_t    accept_mutex_delay;
+
+    u_char       *name;
+
+#if (NGX_DEBUG)
+    ngx_array_t   debug_connection;
+#endif
+} ngx_event_conf_t;
+// event的模块的参数结构
+
+
+typedef struct {
+    ngx_str_t              *name;  
+
+    void                 *(*create_conf)(ngx_cycle_t *cycle);
+    char                 *(*init_conf)(ngx_cycle_t *cycle, void *conf);
+
+    ngx_event_actions_t     actions;
+} ngx_event_module_t; 
+// event的子模块的ctx     
